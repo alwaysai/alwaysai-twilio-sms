@@ -1,5 +1,8 @@
 import time
 import edgeiq
+import socketio
+import requests
+
 """
 Use object detection to detect objects in the frame in realtime. The
 types of objects detected can be changed by selecting different models.
@@ -13,8 +16,12 @@ https://dashboard.alwaysai.co/docs/application_development/changing_the_engine_a
 
 
 def main():
+
+    client_socket = ClientSocket()
+    target = 'chair'
+
     obj_detect = edgeiq.ObjectDetection(
-            "alwaysai/mobilenet_ssd")
+        "alwaysai/mobilenet_ssd")
     obj_detect.load(engine=edgeiq.Engine.DNN)
 
     print("Loaded model:\n{}\n".format(obj_detect.model_id))
@@ -36,15 +43,19 @@ def main():
                 frame = video_stream.read()
                 results = obj_detect.detect_objects(frame, confidence_level=.5)
                 frame = edgeiq.markup_image(
-                        frame, results.predictions, colors=obj_detect.colors)
+                    frame, results.predictions, colors=obj_detect.colors)
 
                 # Generate text to display on streamer
                 text = ["Model: {}".format(obj_detect.model_id)]
                 text.append(
-                        "Inference time: {:1.3f} s".format(results.duration))
+                    "Inference time: {:1.3f} s".format(results.duration))
                 text.append("Objects:")
 
                 for prediction in results.predictions:
+                    if target == prediction.label:
+                      client_socket.labels(prediction.label)
+
+
                     text.append("{}: {:2.2f}%".format(
                         prediction.label, prediction.confidence * 100))
 
@@ -61,6 +72,24 @@ def main():
         print("approx. FPS: {:.2f}".format(fps.compute_fps()))
 
         print("Program Ending")
+
+
+class ClientSocket():
+    sio = socketio.Client()
+
+    @sio.event
+    def connect():
+        print('connection established')
+
+    @sio.event
+    def labels(self, data):
+        self.sio.emit('labels', {'response': data})
+
+    @sio.event
+    def disconnect():
+        print('disconnected from server')
+
+    sio.connect('http://localhost:3001')
 
 
 if __name__ == "__main__":
