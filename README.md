@@ -18,5 +18,6 @@ Once your alwaysAI application detects a chair, it should send you a text.
 
 ## Support
 Docs: https://dashboard.alwaysai.co/docs/getting_started/introduction.html
-Community Discord: https://discord.gg/rjDdRPT
+Community Discord: https://discord.gg/alwaysai
 Email: support@alwaysai.co
+
